@@ -1,0 +1,72 @@
+pool:
+  vmImage: 'ubuntu-16.04'
+
+strategy:
+  matrix:
+    DotNetCore22:
+      containerImage: mcr.microsoft.com/dotnet/core/sdk:2.2
+    DotNetCore22Nightly:
+      containerImage: mcr.microsoft.com/dotnet/core-nightly/sdk:2.2
+
+container: $[ variables['containerImage'] ]
+
+resources:
+  containers:
+  - container: redis5
+    image: redis:5
+  - container: redis4
+    image: redis:4
+
+services:
+  redis5: redis5
+  redis4: redis4
+
+variables:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
+steps:
+- task: DotNetCoreCLI@2
+  displayName: Build
+  inputs:
+    command: build
+    projects: '**/*.csproj'
+    arguments: '--configuration release'
+
+- task: DotNetCoreCLI@2
+  displayName: Test with Redis v5
+  inputs:
+    command: test
+    projects: '**/*Tests.csproj'
+    arguments: '--configuration release'
+    testRunTitle: MyProject - Redis v5 - $(Agent.JobName)
+  env:
+    CONNECTIONSTRINGS_REDIS: redis5:6379
+  continueOnError: true
+
+- task: DotNetCoreCLI@2
+  displayName: Test with Redis v4
+  inputs:
+    command: test
+    projects: '**/*Tests.csproj'
+    arguments: '--configuration release'
+    testRunTitle: MyProject - Redis v4 - $(Agent.JobName)
+  env:
+    CONNECTIONSTRINGS_REDIS: redis4:6379
+  continueOnError: true
+
+- task: DotNetCoreCLI@2
+  displayName: Publish
+  inputs:
+    command: publish
+    projects: 'MyProject/MyProject.csproj'
+    publishWebProjects: false
+    zipAfterPublish: false
+    arguments: '--configuration release'
+
+- task: PublishPipelineArtifact@0
+  displayName: Store artefact
+  inputs:
+    artifactName: 'MyProject'
+    targetPath: 'MyProject/bin/release/netcoreapp2.2/publish/'
+  condition: and(eq(variables['Agent.JobStatus'], 'Succeeded'), endsWith(variables['Agent.JobName'], 'DotNetCore22'))
+  

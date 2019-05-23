@@ -1,0 +1,30 @@
+pool:
+  vmImage: 'ubuntu-16.04'
+
+container: mcr.microsoft.com/dotnet/core/sdk:2.2
+
+variables:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
+steps:
+- task: DotNetCoreCLI@2
+  displayName: Build
+  inputs:
+    command: build
+    projects: '**/*.csproj'
+    arguments: '--configuration release'
+
+- task: DotNetCoreCLI@2
+  displayName: Publish
+  inputs:
+    command: publish
+    projects: 'MyProject/MyProject.csproj'
+    publishWebProjects: false
+    zipAfterPublish: false
+    arguments: '--configuration release'
+
+- task: PublishPipelineArtifact@0
+  displayName: Store artefact
+  inputs:
+    artifactName: 'MyProject'
+    targetPath: 'MyProject/bin/release/netcoreapp2.2/publish/'
