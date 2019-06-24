@@ -67,7 +67,7 @@ jobs:
     inputs:
       artifactName: 'MyProject'
       targetPath: 'MyProject/bin/release/netcoreapp2.2/publish/'
-    condition: and(eq(variables['Agent.JobStatus'], 'Succeeded'), endsWith(variables['Agent.JobName'], 'DotNetCore22'))
+    condition: eq(variables['Agent.JobStatus'], 'Succeeded')
  
 - job: Package
   dependsOn: BuildAndTest
